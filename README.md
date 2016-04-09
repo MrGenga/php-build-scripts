@@ -1,4 +1,4 @@
-# Custom PHP build scripts for PocketMine-MP
+# Custom PHP build scripts for Genisys
 
 ## compile.sh
 
@@ -23,14 +23,14 @@ Use this script to build the custom PHP binary. Make sure you have ``make autoco
 
 ## installer.sh
 
-Script to install PocketMine-MP and PHP binaries.
+Script to install Genisys and PHP binaries.
 
 | Flag   | Description                         |
 | ------ | ----------------------------------- |
-| -u     | Update PocketMine-MP                |
+| -u     | Update Genisys.                     |
 | -d     | Install directory                   |
 | -v     | Channel (stable or development)     |
 
 ## jenkins.sh
 
-PHP binaries provided by PocketMine are build using this script. The script runs the ``compile.sh`` with some default arguments.
+PHP binaries provided by Genisys are build using this script. The script runs the ``compile.sh`` with some default arguments.
