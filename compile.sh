@@ -10,30 +10,28 @@ MBEDTLS_VERSION="2.2.1"
 LIBMCRYPT_VERSION="2.5.8"
 GMP_VERSION="6.1.0"
 GMP_VERSION_DIR="6.1.0"
-CURL_VERSION="curl-7_47_1"
+CURL_VERSION="curl-7_49_1"
 READLINE_VERSION="6.3"
 NCURSES_VERSION="6.0"
 PHPNCURSES_VERSION="1.0.2"
-PTHREADS_VERSION="3.1.5"
+PTHREADS_VERSION="3.1.6"
 XDEBUG_VERSION="2.2.6"
 PHP_POCKETMINE_VERSION="0.0.6"
-#UOPZ_VERSION="2.0.4"
 WEAKREF_VERSION="0.3.2"
-PHPYAML_VERSION="2.0.0RC6"
+PHPYAML_VERSION="2.0.0RC7"
 YAML_VERSION="0.1.6"
 YAML_FORANDROID_VERSION="0.1.4"
 #PHPLEVELDB_VERSION="0.1.4"
 PHPLEVELDB_VERSION="2963815338edfebc5ab8c512bcd2b72f0357ac6e"
 #LEVELDB_VERSION="1.18"
-LEVELDB_VERSION="b633756b51390a9970efde9068f60188ca06a724" #Check MacOS
-LIBXML_VERSION="2.9.1"
+LEVELDB_VERSION="b633756b51390a9970efde9068f60188ca06a724" # Check Mac OS X
+LIBXML_VERSION="2.9.4"
 LIBPNG_VERSION="1.6.21"
 BCOMPILER_VERSION="1.0.2"
 
-echo "[PocketMine] PHP compiler for Linux, MacOS and Android"
+echo "[PocketMine] PHP compiler for Linux, Mac OS X and Android"
 DIR="$(pwd)"
 date > "$DIR/install.log" 2>&1
-#trap "echo \"# \$(eval echo \$BASH_COMMAND)\" >> \"$DIR/install.log\" 2>&1" DEBUG
 uname -a >> "$DIR/install.log" 2>&1
 echo "[INFO] Checking dependecies"
 type make >> "$DIR/install.log" 2>&1 || { echo >&2 "[ERROR] Please install \"make\""; read -p "Press [Enter] to continue..."; exit 1; }
