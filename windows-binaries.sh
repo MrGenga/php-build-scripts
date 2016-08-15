@@ -1,177 +1,75 @@
 #!/bin/bash
-[ -z "$PHP_VERSION" ] && PHP_VERSION="7.0.0RC3"
+
+# Requirements: curl, bsdtar
+
+set -e
+
+PHP_VERSION="7.0.9"
 PHP_VERSION_BASE="${PHP_VERSION:0:3}"
+EXTENSIONS="pthreads weakref yaml"
+pthreads_VERSION="3.1.6"
+weakref_VERSION="0.3.2"
+yaml_VERSION="2.0.0RC7"
 
-PHP_IS_BETA="yes"
+get () {
+    echo "Downloading and extracting ${1}..."
+    curl -fsSL "${1}" | bsdtar -xf - -C "work/${2}"
+    echo "${1} downloaded and extracted."
+}
 
-PTHREADS_VERSION="3.0.7"
-#XDEBUG_VERSION="2.2.6"
-#WEAKREF_VERSION="0.2.6"
-YAML_VERSION="1.2.0"
-WXWIDGETS_VERSION="3.0.0.2"
+pack () {
+    echo "Archiving files..."
+    bsdtar -acf "${1}" -C work .
+    echo "Compressed archive can be found at ${1}."
+}
 
-echo "[PocketMine] PHP Windows binary builder"
-DIR="$(pwd)"
-
-#Needed to use aliases
-shopt -s expand_aliases
-type wget >/dev/null 2>&1
-if [ $? -eq 0 ]; then
-	alias download_file="wget --no-check-certificate -q -O -"
-else
-	type curl >/dev/null 2>&1
-	if [ $? -eq 0 ]; then
-		alias download_file="curl --insecure --silent --location"
-	else
-		echo "error, curl or wget not found"
-	fi
-fi
-
-BUILD_TARGET="x86"
-
-while getopts "::t:" OPTION; do
-
-	case $OPTION in
-		t)
-			echo "[opt] Set target to $OPTARG"
-			BUILD_TARGET="$OPTARG"
-			;;
-		\?)
-			echo "Invalid option: -$OPTION$OPTARG" >&2
-			exit 1
-			;;
-	esac
+for ARCH in x86 x64; do
+    mkdir -p work
+    mkdir -p work/bin/php
+    get "http://windows.php.net/downloads/releases/php-${PHP_VERSION}-Win32-VC14-${ARCH}.zip" bin/php &
+    for EXT in $EXTENSIONS; do
+        EXT_VER_TEMP="${EXT}_VERSION"
+        EXT_VER="${!EXT_VER_TEMP}"
+        get "http://windows.php.net/downloads/pecl/releases/${EXT}/${EXT_VER}/php_${EXT}-${EXT_VER}-${PHP_VERSION_BASE}-ts-vc14-${ARCH}.zip" bin/php &
+    done
+    echo ";Custom Genisys php.ini file
+zend.enable_gc = On
+max_execution_time = 0
+error_reporting = -1
+display_errors = stderr
+display_startup_errors = On
+register_argc_argv = On
+default_charset = \"UTF-8\"
+include_path = \".;.\ext\"
+extension_dir = \"./\"
+enable_dl = On
+allow_url_fopen = On
+extension=php_bz2.dll
+extension=php_weakref.dll
+extension=php_curl.dll
+extension=php_mysqli.dll
+extension=php_sqlite3.dll
+extension=php_sockets.dll
+extension=php_mbstring.dll
+extension=php_yaml.dll
+extension=php_pthreads.dll
+extension=php_com_dotnet.dll
+zend_extension=php_opcache.dll
+;zend_extension=php_xdebug.dll
+cli_server.color = On
+phar.readonly = Off
+phar.require_hash = On
+opcache.enable=1
+opcache.enable_cli=1
+opcache.memory_consumption=128
+opcache.interned_strings_buffer=8
+opcache.max_accelerated_files=4000
+opcache.save_comments=1
+opcache.load_comments=1
+opcache.fast_shutdown=0
+opcache.optimization_level=0xffffffff
+" > work/bin/php/php.ini
+    wait
+    pack "php_${PHP_VERSION}_${ARCH}.zip"
+    rm -rf work
 done
-
-cd "$DIR" >/dev/null 2>&1
-
-rm -rf "bin" >/dev/null 2>&1
-
-rm -rf "temp_data" >/dev/null 2>&1
-
-mkdir temp_data
-cd temp_data
-
-TMP_PATH="$DIR/temp_data"
-
-echo -n "[PHP] downloading ${PHP_VERSION}..."
-
-if [[ "$PHP_IS_BETA" == "yes" ]]; then
-	download_file "http://windows.php.net/downloads/qa/php-$PHP_VERSION-Win32-VC14-$BUILD_TARGET.zip" > temp.zip && unzip -o temp.zip >/dev/null 2>&1 && rm temp.zip
-	echo " done!"
-else
-	download_file "http://windows.php.net/downloads/releases/php-$PHP_VERSION-Win32-VC14-$BUILD_TARGET.zip" > temp.zip && unzip -o temp.zip >/dev/null 2>&1 && rm temp.zip
-	echo " done!"
-fi
-
-cd ext
-
-echo -n "[pthreads] downloading ${PTHREADS_VERSION}..."
-download_file "http://windows.php.net/downloads/pecl/releases/pthreads/$PTHREADS_VERSION/php_pthreads-$PTHREADS_VERSION-$PHP_VERSION_BASE-ts-vc11-$BUILD_TARGET.zip" > temp.zip && unzip -o temp.zip >/dev/null 2>&1 && rm temp.zip
-echo " done!"
-
-if [[ "$WEAKREF_VERSION" != "" ]]; then
-	echo -n "[WeakRef] downloading ${WEAKREF_VERSION}..."
-	download_file "http://windows.php.net/downloads/pecl/releases/weakref/$WEAKREF_VERSION/php_weakref-$WEAKREF_VERSION-$PHP_VERSION_BASE-ts-vc11-$BUILD_TARGET.zip" > temp.zip && unzip -o temp.zip >/dev/null 2>&1 && rm temp.zip
-	echo " done!"
-fi
-
-echo -n "[YAML] downloading ${YAML_VERSION}..."
-download_file "http://windows.php.net/downloads/pecl/releases/yaml/$YAML_VERSION/php_yaml-$YAML_VERSION-$PHP_VERSION_BASE-ts-vc11-$BUILD_TARGET.zip" > temp.zip && unzip -o temp.zip >/dev/null 2>&1 && rm temp.zip
-echo " done!"
-
-if [[ "$XDEBUG_VERSION" != "" ]]; then
-	echo -n "[xdebug] downloading ${XDEBUG_VERSION}..."
-	download_file "http://windows.php.net/downloads/pecl/releases/xdebug/$XDEBUG_VERSION/php_xdebug-$XDEBUG_VERSION-$PHP_VERSION_BASE-ts-vc11-$BUILD_TARGET.zip" > temp.zip && unzip -o temp.zip >/dev/null 2>&1 && rm temp.zip
-	echo " done!"
-fi
-
-#echo -n "[wxwidgets] downloading ${WXWIDGETS_VERSION}..."
-#download_file "http://windows.php.net/downloads/pecl/releases/wxwidgets/$WXWIDGETS_VERSION/php_wxwidgets-$WXWIDGETS_VERSION-$PHP_VERSION_BASE-ts-vc11-$BUILD_TARGET.zip" > temp.zip && unzip -o temp.zip >/dev/null 2>&1 && rm temp.zip
-#echo " done!"
-
-cd ../..
-
-mkdir -p bin/php
-cd bin/php
-
-
-echo -n "Selecting files..."
-
-cp "$TMP_PATH/php.exe" .
-cp "$TMP_PATH/php7ts.dll" .
-cp "$TMP_PATH/libeay32.dll" .
-cp "$TMP_PATH/libssh2.dll" .
-cp "$TMP_PATH/ssleay32.dll" .
-cp "$TMP_PATH/license.txt" .
-cp "$TMP_PATH/news.txt" .
-cp "$TMP_PATH/readme-redist-bins.txt" .
-cp "$TMP_PATH/ext/php_com_dotnet.dll" .
-cp "$TMP_PATH/ext/php_curl.dll" .
-cp "$TMP_PATH/ext/php_gmp.dll" .
-cp "$TMP_PATH/ext/php_mbstring.dll" .
-cp "$TMP_PATH/ext/php_mysqli.dll" .
-cp "$TMP_PATH/ext/php_opcache.dll" .
-cp "$TMP_PATH/ext/php_pthreads.dll" .
-cp "$TMP_PATH/ext/php_sockets.dll" .
-cp "$TMP_PATH/ext/php_gd2.dll" .
-cp "$TMP_PATH/ext/php_sqlite3.dll" .
-cp "$TMP_PATH/ext/php_weakref.dll" .
-#cp "$TMP_PATH/ext/php_wxwidgets.dll" .
-cp "$TMP_PATH/ext/php_xdebug.dll" .
-cp "$TMP_PATH/ext/php_yaml.dll" .
-cp "$TMP_PATH/ext/yaml.dll" .
-cp "$TMP_PATH/ext/pthreadVC2.dll" .
-
-echo " done!"
-
-echo -n "Creating php.ini..."
-
-echo ";Custom PocketMine php.ini file" > php.ini
-echo "zend.enable_gc = On" >> php.ini
-echo "max_execution_time = 0" >> php.ini
-echo "memory_limit = 256M" >> php.ini
-echo "error_reporting = -1" >> php.ini
-echo "display_errors = stderr" >> php.ini
-echo "display_startup_errors = On" >> php.ini
-echo "register_argc_argv = On" >> php.ini
-echo 'default_charset = "UTF-8"' >> php.ini
-echo 'include_path = ".;.\ext"' >> php.ini
-echo 'extension_dir = "./"' >> php.ini
-echo "enable_dl = On" >> php.ini
-echo "allow_url_fopen = On" >> php.ini
-
-echo "extension=php_weakref.dll" >> php.ini
-echo "extension=php_curl.dll" >> php.ini
-echo "extension=php_mysqli.dll" >> php.ini
-echo "extension=php_sqlite3.dll" >> php.ini
-echo "extension=php_sockets.dll" >> php.ini
-echo "extension=php_mbstring.dll" >> php.ini
-echo "extension=php_yaml.dll" >> php.ini
-echo "extension=php_pthreads.dll" >> php.ini
-echo "extension=php_com_dotnet.dll" >> php.ini
-echo "extension=php_gd2.dll" >> php.ini
-#echo "extension=php_wxwidgets.dll" >> php.ini
-
-echo "zend_extension=php_opcache.dll" >> php.ini
-echo ";zend_extension=php_xdebug.dll" >> php.ini
-
-echo "cli_server.color = On" >> php.ini
-echo "phar.readonly = Off" >> php.ini
-echo "phar.require_hash = On" >> php.ini
-echo "zend.assertions=-1" >> php.ini
-echo "opcache.enable=1" >> php.ini
-echo "opcache.enable_cli=1" >> php.ini
-echo "opcache.memory_consumption=128" >> php.ini
-echo "opcache.interned_strings_buffer=8" >> php.ini
-echo "opcache.max_accelerated_files=4000" >> php.ini
-echo "opcache.save_comments=1" >> php.ini
-echo "opcache.load_comments=1" >> php.ini
-echo "opcache.fast_shutdown=0" >> php.ini
-echo "opcache.optimization_level=0xffffffff" >> php.ini
-
-echo " done!"
-
-cd ../..
-
-
