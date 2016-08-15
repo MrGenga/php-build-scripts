@@ -54,6 +54,7 @@ extension=php_mbstring.dll
 extension=php_yaml.dll
 extension=php_pthreads.dll
 extension=php_com_dotnet.dll
+extension=php_openssl.dll
 zend_extension=php_opcache.dll
 ;zend_extension=php_xdebug.dll
 cli_server.color = On
