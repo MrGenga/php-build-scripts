@@ -3,6 +3,7 @@
 # Requirements: curl, bsdtar
 
 set -e
+shopt -s extglob
 
 PHP_VERSION="7.0.9"
 PHP_VERSION_BASE="${PHP_VERSION:0:3}"
@@ -92,6 +93,9 @@ opcache.fast_shutdown=0
 opcache.optimization_level=0xffffffff
 " > work/bin/php/php.ini
     wait
+    # Assuming such libraries exist.
+    mv work/bin/php/ext/!(php_*).dll work/bin/php/
+    find work -type f -not -name "*.dll" -not -name "*.exe" -not -name "php.ini" -not -name "start.cmd" -print0 | xargs -0 rm -f
     pack "php_${PHP_VERSION}_${ARCH}.zip"
     rm -rf work
 done
