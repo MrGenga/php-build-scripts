@@ -10,28 +10,49 @@ EXTENSIONS="pthreads weakref yaml"
 pthreads_VERSION="3.1.6"
 weakref_VERSION="0.3.2"
 yaml_VERSION="2.0.0RC7"
+CYGWIN_PACKAGES="cygwin mintty"
+cygwin_VERSION="2.5.2-1"
+mintty_VERSION="2.4.2-0"
 
 get () {
     echo "Downloading and extracting ${1}..."
-    curl -fsSL "${1}" | bsdtar -xf - -C "work/${2}"
+    curl -fsSL "${1}" | bsdtar -xf - -C "work/${2}" "${@:3}"
     echo "${1} downloaded and extracted."
+}
+
+get_noextract () {
+    echo "Downloading ${1}..."
+    (cd work/${2} && curl -fsSLOJ "${1}")
+    echo "${1} downloaded and saved."
+}
+
+get_cygwin () {
+    get "${1}" "${2}" --strip-components 2 usr/bin
 }
 
 pack () {
     echo "Archiving files..."
-    bsdtar -acf "${1}" -C work .
+    bsdtar -acf "${1}" -C work -s '/.//' .
     echo "Compressed archive can be found at ${1}."
 }
 
 for ARCH in x86 x64; do
     mkdir -p work
-    mkdir -p work/bin/php
+    mkdir -p work/bin/php/ext
     get "http://windows.php.net/downloads/releases/php-${PHP_VERSION}-Win32-VC14-${ARCH}.zip" bin/php &
     for EXT in $EXTENSIONS; do
         EXT_VER_TEMP="${EXT}_VERSION"
         EXT_VER="${!EXT_VER_TEMP}"
-        get "http://windows.php.net/downloads/pecl/releases/${EXT}/${EXT_VER}/php_${EXT}-${EXT_VER}-${PHP_VERSION_BASE}-ts-vc14-${ARCH}.zip" bin/php &
+        get "http://windows.php.net/downloads/pecl/releases/${EXT}/${EXT_VER}/php_${EXT}-${EXT_VER}-${PHP_VERSION_BASE}-ts-vc14-${ARCH}.zip" bin/php/ext &
     done
+    mkdir -p work/bin
+    CYGWIN_ARCH=x86_`[ ARCH = "x64" ] && echo 64 || true`
+    for PKG in $CYGWIN_PACKAGES; do
+        PKG_VER_TEMP="${PKG}_VERSION"
+        PKG_VER="${!PKG_VER_TEMP}"
+        get_cygwin "https://mirrors.kernel.org/sourceware/cygwin/x86/release/${PKG}/${PKG}-${PKG_VER}.tar.xz" bin &
+    done
+    get_noextract "https://raw.githubusercontent.com/iTXTech/Genisys/master/start.cmd" &
     echo ";Custom Genisys php.ini file
 zend.enable_gc = On
 max_execution_time = 0
@@ -41,7 +62,7 @@ display_startup_errors = On
 register_argc_argv = On
 default_charset = \"UTF-8\"
 include_path = \".;.\ext\"
-extension_dir = \"./\"
+extension_dir = \"./ext/\"
 enable_dl = On
 allow_url_fopen = On
 extension=php_bz2.dll
